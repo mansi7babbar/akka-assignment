@@ -4,7 +4,6 @@ import java.io.File
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.util.Timeout
-import akka.pattern._
 
 import scala.concurrent.duration._
 import scala.io.Source
@@ -34,6 +33,6 @@ object LogFileAnalysisUsingActorModel extends App {
 
   val system = ActorSystem("LogFileAnalysisSystem")
   val logAnalysis = system.actorOf(Props[LogAnalysis])
-  logAnalysis ? LogFiles(logFiles)
+  logAnalysis ! LogFiles(logFiles)
 
 }
