@@ -11,17 +11,26 @@ class LogFileAnalysis {
     logFiles.map(files => files.map(file => (file, Source.fromFile(file).getLines.toList.count(line => line.contains("[ERROR]")))))
   }
 
+  def avgNoOfErrors(logFiles: Future[List[File]]): Future[List[(File, Int)]] = {
+    logFiles.map(files => files.map(file => (file, Source.fromFile(file).getLines.toList.count(line => line.contains("[ERROR]")) / Source.fromFile(file).getLines.toList.length)))
+  }
+
   def totalNoOfWarnings(logFiles: Future[List[File]]): Future[List[(File, Int)]] = {
     logFiles.map(files => files.map(file => (file, Source.fromFile(file).getLines.toList.count(line => line.contains("[WARN]")))))
+  }
+
+  def avgNoOfWarnings(logFiles: Future[List[File]]): Future[List[(File, Int)]] = {
+    logFiles.map(files => files.map(file => (file, Source.fromFile(file).getLines.toList.count(line => line.contains("[WARN]")) / Source.fromFile(file).getLines.toList.length)))
   }
 
   def totalNoOfInfo(logFiles: Future[List[File]]): Future[List[(File, Int)]] = {
     logFiles.map(files => files.map(file => (file, Source.fromFile(file).getLines.toList.count(line => line.contains("[INFO]")))))
   }
 
-  def avgCountPerFile(countPerFile: Future[List[(File, Int)]]): Future[Int] = {
-    countPerFile.map(files => files.foldLeft(0) { (avg, count) => avg + count._2 } / files.length)
+  def avgNoOfInfo(logFiles: Future[List[File]]): Future[List[(File, Int)]] = {
+    logFiles.map(files => files.map(file => (file, Source.fromFile(file).getLines.toList.count(line => line.contains("[INFO]")) / Source.fromFile(file).getLines.toList.length)))
   }
+
 }
 
 object LogFileAnalysis extends App {
@@ -37,23 +46,16 @@ object LogFileAnalysis extends App {
 
   val errorCount = logAnalysis.totalNoOfErrors(logFiles)
 
-  val avgErrorsPerFile = logAnalysis.avgCountPerFile(errorCount)
+  val avgErrorsPerFile = logAnalysis.avgNoOfErrors(logFiles)
 
   val warningCount = logAnalysis.totalNoOfWarnings(logFiles)
 
-  val avgWarningsPerFile = logAnalysis.avgCountPerFile(warningCount)
+  val avgWarningsPerFile = logAnalysis.avgNoOfWarnings(logFiles)
 
   val infoCount = logAnalysis.totalNoOfInfo(logFiles)
 
-  val avgInfoPerFile = logAnalysis.avgCountPerFile(infoCount)
+  val avgInfoPerFile = logAnalysis.avgNoOfInfo(logFiles)
 
   Thread.sleep(5000)
-  println(logFiles)
-  println(errorCount)
-  println(avgErrorsPerFile)
-  println(warningCount)
-  println(avgWarningsPerFile)
-  println(infoCount)
-  println(avgInfoPerFile)
 
 }

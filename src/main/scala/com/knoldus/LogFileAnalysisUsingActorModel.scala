@@ -21,7 +21,7 @@ class LogAnalysis extends Actor with ActorLogging {
 case class LogFiles(logFiles: List[File])
 
 object LogFileAnalysisUsingActorModel extends App {
-  implicit val timeout: Timeout = Timeout(5 second)
+  implicit val timeout: Timeout = Timeout(20 second)
 
   def getListOfFiles(directoryName: String): List[File] = {
     val dir = new File(directoryName)
