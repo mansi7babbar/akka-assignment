@@ -4,44 +4,70 @@ import java.io.File
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.dispatch.MessageDispatcher
+import akka.util.Timeout
+import akka.pattern._
 import akka.routing.RoundRobinPool
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.io.Source
 
-case class LogRecords(file: File, errorCount: Int, warnCount: Int, infoCount: Int)
+case class LogRecord(file: File, errorCount: Int, errorAvg: Int, warnCount: Int, warnAvg: Int, infoCount: Int, infoAvg: Int)
 
-class LogsAnalytics extends Actor with ActorLogging {
+class LogsAnalysis extends Actor with ActorLogging {
   override def receive: Receive = {
     case file: File =>
       val res = Source.fromFile(file).getLines.toList.foldLeft(file, 0, 0, 0) { (count, elem) =>
-        elem match {
-          case line: String if line.contains("[ERROR]") => (count._1, count._2 + 1, count._3, count._4)
-          case line: String if line.contains("[WARN]") => (count._1, count._2, count._3 + 1, count._4)
-          case line: String if line.contains("[INFO]") => (count._1, count._2, count._3, count._4 + 1)
-          case _ => (count._1, count._2, count._3, count._4)
+        if (elem.contains("[ERROR]")) {
+          (count._1, count._2 + 1, count._3, count._4)
+        }
+        else if (elem.contains("[WARN]")) {
+          (count._1, count._2, count._3 + 1, count._4)
+        }
+        else if (elem.contains("[INFO]")) {
+          (count._1, count._2, count._3, count._4 + 1)
+        }
+        else {
+          (count._1, count._2, count._3, count._4)
         }
       }
-      log.info(LogRecords(res._1, res._2, res._3, res._4).toString)
+      log.info(LogRecord(res._1, res._2, res._2 / Source.fromFile(file).getLines.toList.length, res._3, res._3 / Source.fromFile(file).getLines.toList.length, res._4, res._4 / Source.fromFile(file).getLines.toList.length).toString)
+      Future {
+        LogRecord(res._1, res._2, res._2 / Source.fromFile(file).getLines.toList.length, res._3, res._3 / Source.fromFile(file).getLines.toList.length, res._4, res._4 / Source.fromFile(file).getLines.toList.length)
+      }.pipeTo(sender)
   }
 }
 
-class Log extends Actor with ActorLogging {
+class Logs extends Actor with ActorLogging {
+  implicit val timeout: Timeout = Timeout(1 seconds)
+
   override def receive: Receive = {
     case directoryName: String =>
       val dir = new File(directoryName)
       val logFiles = dir.listFiles.toList
-      for (file <- logFiles) {
-        val props = RoundRobinPool(5).props(Props[LogsAnalytics])
-        val logsAnalysis = context.actorOf(props.withDispatcher("fixed-thread-pool"))
-        logsAnalysis ! file
+      val master = context.actorOf(RoundRobinPool(5).props(Props[LogsAnalysis]).withDispatcher("fixed-thread-pool"), "master")
+      @scala.annotation.tailrec
+      def getListOfLogRecords(fileIndex: Int, listOfLogRecords: List[Future[LogRecord]]): Future[List[LogRecord]] = {
+        if (fileIndex < logFiles.length) {
+          val logRecord = master ? logFiles(fileIndex)
+          getListOfLogRecords(fileIndex + 1, listOfLogRecords :+ logRecord.mapTo[LogRecord])
+        }
+        else {
+          Future.sequence(listOfLogRecords)
+        }
       }
+
+      getListOfLogRecords(0, List[Future[LogRecord]]()).pipeTo(sender())
   }
 }
 
 object LogFileAnalysisUsingDispatcher extends App {
-  val directoryName = "/home/knoldus/IdeaProjects/akka-assignment/src/main/resources"
+  implicit val timeout: Timeout = Timeout(1 seconds)
+  val directoryName = "/home/knoldus/IdeaProjects/akka-assignment/src/main/resources/res"
   val system = ActorSystem("LogFileAnalysisSystem")
   implicit val executionContext: MessageDispatcher = system.dispatchers.lookup("fixed-thread-pool")
-  val logFiles = system.actorOf(Props[Log])
-  logFiles ! directoryName
+  val logFiles = system.actorOf(Props[Logs])
+  val res = logFiles ? directoryName
+  val finalRes = res.mapTo[List[Future[LogRecord]]]
 }
