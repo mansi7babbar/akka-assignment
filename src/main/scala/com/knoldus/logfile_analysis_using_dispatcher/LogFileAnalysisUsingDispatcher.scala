@@ -1,12 +1,13 @@
-package com.knoldus
+package com.knoldus.logfile_analysis_using_dispatcher
 
 import java.io.File
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.dispatch.MessageDispatcher
-import akka.util.Timeout
 import akka.pattern._
 import akka.routing.RoundRobinPool
+import akka.util.Timeout
+import com.knoldus.logfile_analysis_using_actormodel
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -15,7 +16,7 @@ import scala.io.Source
 
 case class LogRecord(file: File, errorCount: Int, errorAvg: Int, warnCount: Int, warnAvg: Int, infoCount: Int, infoAvg: Int)
 
-class LogsAnalysis extends Actor with ActorLogging {
+class LogFileAnalysis extends Actor with ActorLogging {
   override def receive: Receive = {
     case file: File =>
       val res = Source.fromFile(file).getLines.toList.foldLeft(file, 0, 0, 0) { (count, elem) =>
@@ -32,9 +33,9 @@ class LogsAnalysis extends Actor with ActorLogging {
           (count._1, count._2, count._3, count._4)
         }
       }
-      log.info(LogRecord(res._1, res._2, res._2 / Source.fromFile(file).getLines.toList.length, res._3, res._3 / Source.fromFile(file).getLines.toList.length, res._4, res._4 / Source.fromFile(file).getLines.toList.length).toString)
+      log.info(logfile_analysis_using_actormodel.LogRecord(res._1, res._2, res._2 / Source.fromFile(file).getLines.toList.length, res._3, res._3 / Source.fromFile(file).getLines.toList.length, res._4, res._4 / Source.fromFile(file).getLines.toList.length).toString)
       Future {
-        LogRecord(res._1, res._2, res._2 / Source.fromFile(file).getLines.toList.length, res._3, res._3 / Source.fromFile(file).getLines.toList.length, res._4, res._4 / Source.fromFile(file).getLines.toList.length)
+        logfile_analysis_using_actormodel.LogRecord(res._1, res._2, res._2 / Source.fromFile(file).getLines.toList.length, res._3, res._3 / Source.fromFile(file).getLines.toList.length, res._4, res._4 / Source.fromFile(file).getLines.toList.length)
       }.pipeTo(sender)
   }
 }
@@ -46,7 +47,7 @@ class Logs extends Actor with ActorLogging {
     case directoryName: String =>
       val dir = new File(directoryName)
       val logFiles = dir.listFiles.toList
-      val master = context.actorOf(RoundRobinPool(5).props(Props[LogsAnalysis]).withDispatcher("fixed-thread-pool"), "master")
+      val master = context.actorOf(RoundRobinPool(5).props(Props[LogFileAnalysis]).withDispatcher("fixed-thread-pool"), "master")
       @scala.annotation.tailrec
       def getListOfLogRecords(fileIndex: Int, listOfLogRecords: List[Future[LogRecord]]): Future[List[LogRecord]] = {
         if (fileIndex < logFiles.length) {
@@ -69,5 +70,5 @@ object LogFileAnalysisUsingDispatcher extends App {
   implicit val executionContext: MessageDispatcher = system.dispatchers.lookup("fixed-thread-pool")
   val logFiles = system.actorOf(Props[Logs])
   val res = logFiles ? directoryName
-  val finalRes = res.mapTo[List[Future[LogRecord]]]
+  val finalRes = res.mapTo[List[Future[logfile_analysis_using_actormodel.LogRecord]]]
 }

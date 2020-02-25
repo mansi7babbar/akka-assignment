@@ -1,9 +1,9 @@
-package com.knoldus
+package com.knoldus.logfile_analysis
 
 import java.io.File
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.io.Source
 
 class LogFileAnalysis {

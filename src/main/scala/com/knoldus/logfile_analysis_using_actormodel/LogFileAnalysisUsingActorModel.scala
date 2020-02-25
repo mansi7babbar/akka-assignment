@@ -1,19 +1,19 @@
-package com.knoldus
+package com.knoldus.logfile_analysis_using_actormodel
 
 import java.io.File
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
-import akka.util.Timeout
 import akka.pattern._
-import scala.concurrent.ExecutionContext.Implicits.global
+import akka.util.Timeout
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.io.Source
 
 case class LogRecord(file: File, errorCount: Int, errorAvg: Int, warnCount: Int, warnAvg: Int, infoCount: Int, infoAvg: Int)
 
-class LogsAnalysis extends Actor with ActorLogging {
+class LogFileAnalysis extends Actor with ActorLogging {
   override def receive: Receive = {
     case file: File =>
       val res = Source.fromFile(file).getLines.toList.foldLeft(file, 0, 0, 0) { (count, elem) =>
@@ -48,8 +48,8 @@ class Logs extends Actor with ActorLogging {
       @scala.annotation.tailrec
       def getListOfLogRecords(fileIndex: Int, listOfLogRecords: List[Future[LogRecord]]): Future[List[LogRecord]] = {
         if (fileIndex < logFiles.length) {
-          val logsAnalysis = context.actorOf(Props[LogsAnalysis])
-          val logRecord = logsAnalysis ? logFiles(fileIndex)
+          val logFileAnalysis = context.actorOf(Props[LogFileAnalysis])
+          val logRecord = logFileAnalysis ? logFiles(fileIndex)
           getListOfLogRecords(fileIndex + 1, listOfLogRecords :+ logRecord.mapTo[LogRecord])
         }
         else {
