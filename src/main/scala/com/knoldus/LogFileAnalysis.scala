@@ -55,7 +55,4 @@ object LogFileAnalysis extends App {
   val infoCount = logAnalysis.totalNoOfInfo(logFiles)
 
   val avgInfoPerFile = logAnalysis.avgNoOfInfo(logFiles)
-
-  Thread.sleep(5000)
-
 }
