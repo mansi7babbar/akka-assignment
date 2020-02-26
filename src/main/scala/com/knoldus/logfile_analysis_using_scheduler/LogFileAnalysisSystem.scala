@@ -22,7 +22,7 @@ object Constants {
 
 case class LogRecord(file: File, errorCount: Int, warnCount: Int, infoCount: Int)
 
-class LogFileAnalysis extends Actor with ActorLogging {
+class LogFileAnalysis extends Actor {
   override def receive: Receive = {
     case file: File =>
       val logRecord = Source.fromFile(file).getLines.toList.foldLeft(LogRecord(file, 0, 0, 0)) { (log, line) =>
@@ -50,8 +50,6 @@ class Logs extends Actor with ActorLogging {
   }
 
   val master: ActorRef = context.actorOf(RoundRobinPool(Constants.roundRobinParameter, supervisorStrategy = mySupervisorStrategy).props(Props[LogFileAnalysis]).withDispatcher("fixed-thread-pool"), "master")
-
-  var res: Future[List[Future[LogRecord]]] = Future.successful(List.empty[Future[LogRecord]])
 
   override def receive: Receive = {
     case directoryName: String =>
