@@ -14,7 +14,11 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.io.Source
 
-case class LogRecord(file: File, errorCount: Int, errorAvg: Int, warnCount: Int, warnAvg: Int, infoCount: Int, infoAvg: Int)
+object Constants {
+  val roundRobinParameter: Int = 5
+}
+
+case class LogRecord(file: File, errorCount: Int, warnCount: Int, infoCount: Int)
 
 class DisplayFile extends Actor with ActorLogging {
   override def receive: Receive = {
@@ -39,9 +43,8 @@ class LogFileAnalysis extends Actor with ActorLogging {
           (count._1, count._2, count._3, count._4)
         }
       }
-      log.info(LogRecord(res._1, res._2, res._2 / Source.fromFile(file).getLines.toList.length, res._3, res._3 / Source.fromFile(file).getLines.toList.length, res._4, res._4 / Source.fromFile(file).getLines.toList.length).toString)
       Future {
-        LogRecord(res._1, res._2, res._2 / Source.fromFile(file).getLines.toList.length, res._3, res._3 / Source.fromFile(file).getLines.toList.length, res._4, res._4 / Source.fromFile(file).getLines.toList.length)
+        LogRecord(res._1, res._2, res._3, res._4)
       }.pipeTo(sender)
   }
 }
@@ -53,13 +56,14 @@ class Logs extends Actor with ActorLogging {
     case directoryName: String =>
       val dir = new File(directoryName)
       val logFiles = dir.listFiles.toList
-      val master = context.actorOf(RoundRobinPool(5).props(Props[LogFileAnalysis]).withDispatcher("fixed-thread-pool"), "master")
+      val master = context.actorOf(RoundRobinPool(Constants.roundRobinParameter).props(Props[LogFileAnalysis]).withDispatcher("fixed-thread-pool"), "master")
       val displayFile = context.actorOf(Props[DisplayFile])
+
       @scala.annotation.tailrec
       def getListOfLogRecords(fileIndex: Int, listOfLogRecords: List[Future[LogRecord]]): Future[List[LogRecord]] = {
         if (fileIndex < logFiles.length) {
           val logRecord = master ? logFiles(fileIndex)
-          system.scheduler.scheduleOnce(5*60*1000 milliseconds, displayFile, logFiles(fileIndex))
+          system.scheduler.scheduleOnce(5 * 60 * 1000 milliseconds, displayFile, logFiles(fileIndex))
           getListOfLogRecords(fileIndex + 1, listOfLogRecords :+ logRecord.mapTo[LogRecord])
         }
         else {

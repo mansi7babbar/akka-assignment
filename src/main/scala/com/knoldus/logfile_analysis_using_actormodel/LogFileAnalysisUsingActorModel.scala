@@ -11,7 +11,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.io.Source
 
-case class LogRecord(file: File, errorCount: Int, errorAvg: Int, warnCount: Int, warnAvg: Int, infoCount: Int, infoAvg: Int)
+case class LogRecord(file: File, errorCount: Int, warnCount: Int, infoCount: Int)
 
 class LogFileAnalysis extends Actor with ActorLogging {
   override def receive: Receive = {
@@ -30,9 +30,8 @@ class LogFileAnalysis extends Actor with ActorLogging {
           (count._1, count._2, count._3, count._4)
         }
       }
-      log.info(LogRecord(res._1, res._2, res._2 / Source.fromFile(file).getLines.toList.length, res._3, res._3 / Source.fromFile(file).getLines.toList.length, res._4, res._4 / Source.fromFile(file).getLines.toList.length).toString)
       Future {
-        LogRecord(res._1, res._2, res._2 / Source.fromFile(file).getLines.toList.length, res._3, res._3 / Source.fromFile(file).getLines.toList.length, res._4, res._4 / Source.fromFile(file).getLines.toList.length)
+        LogRecord(res._1, res._2, res._3, res._4)
       }.pipeTo(sender)
   }
 }
