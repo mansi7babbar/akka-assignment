@@ -1,4 +1,4 @@
-package com.knoldus.logfile_analysis_using_scheduler
+package com.knoldus.logfile_analysis_using_akka
 
 import java.io.File
 
@@ -22,10 +22,28 @@ object Constants {
 
 case class LogRecord(file: File, errorCount: Int, warnCount: Int, infoCount: Int)
 
+case class LogRecordSum(errorSum: Int, warnSum: Int, infoSum: Int)
+
+case class LogRecordAvg(errorAvg: Int, warnAvg: Int, infoAvg: Int)
+
+class LogFileAnalysisForAvg extends Actor {
+  override def receive: Receive = {
+    case listOfLogRecord: List[LogRecord] =>
+      val logRecordSum = listOfLogRecord.foldLeft(LogRecordSum(0, 0, 0)) { (avg, log) =>
+        log match {
+          case log: LogRecord => LogRecordSum(avg.errorSum + log.errorCount, avg.warnSum + log.warnCount, avg.infoSum + log.infoCount)
+        }
+      }
+
+      val logRecordAvg = LogRecordAvg(logRecordSum.errorSum / listOfLogRecord.length, logRecordSum.warnSum / listOfLogRecord.length, logRecordSum.infoSum / listOfLogRecord.length)
+      Future.successful(logRecordAvg).pipeTo(sender)
+  }
+}
+
 class LogFileAnalysis extends Actor {
   override def receive: Receive = {
-    case file: File =>
-      val logRecord = Source.fromFile(file).getLines.toList.foldLeft(LogRecord(file, 0, 0, 0)) { (log, line) =>
+    case logFile: File =>
+      val logRecord = Source.fromFile(logFile).getLines.toList.foldLeft(LogRecord(logFile, 0, 0, 0)) { (log, line) =>
         line match {
           case line: String if line.contains("[ERROR]") => LogRecord(log.file, log.errorCount + 1, log.warnCount, log.infoCount)
           case line: String if line.contains("[WARN]") => LogRecord(log.file, log.errorCount, log.warnCount + 1, log.infoCount)
@@ -50,12 +68,18 @@ class Logs extends Actor with ActorLogging {
   }
 
   val master: ActorRef = context.actorOf(RoundRobinPool(Constants.roundRobinParameter, supervisorStrategy = mySupervisorStrategy).props(Props[LogFileAnalysis]).withDispatcher("fixed-thread-pool"), "master")
+  val logFileAnalysisForAvg: ActorRef = context.actorOf(Props[LogFileAnalysisForAvg])
 
   override def receive: Receive = {
     case directoryName: String =>
-      val logFiles = new File(directoryName).listFiles.toList
-      val logRecords = Future.sequence(logFiles.map(file => (master ? file).mapTo[LogRecord]))
-      logRecords.map(logRecord => log.info(s"$logRecord"))
+      val listOfLogFiles = new File(directoryName).listFiles.toList
+      val listOfLogRecord = Future.sequence(listOfLogFiles.map(logFile => (master ? logFile).mapTo[LogRecord]))
+      val logRecordAvg = listOfLogRecord.map(listOfLogRecord => (logFileAnalysisForAvg ? listOfLogRecord).mapTo[LogRecordAvg]).flatten
+
+      listOfLogRecord.map(listOfLogRecord => listOfLogRecord.map(logRecord =>
+        log.info(s"File = ${logRecord.file}, Total errors = ${logRecord.errorCount}, Total warnings = ${logRecord.warnCount}, Total info = ${logRecord.infoCount}")))
+      logRecordAvg.map(logRecordAvg =>
+        log.info(s"Avg errors per file = ${logRecordAvg.errorAvg}, Avg warnings per file = ${logRecordAvg.warnAvg}, Avg info per file = ${logRecordAvg.infoAvg}"))
   }
 }
 
@@ -65,6 +89,5 @@ object LogFileAnalysisSystem extends App {
   implicit val executionContext: MessageDispatcher = system.dispatchers.lookup("fixed-thread-pool")
   val logs = system.actorOf(Props[Logs], "controller")
   val directoryName = "/home/knoldus/IdeaProjects/akka-assignment/src/main/resources/res"
-  logs ! directoryName
-  system.scheduler.schedule(0 milliseconds, 1 * 60 * 1000 milliseconds, logs, directoryName)
+  system.scheduler.schedule(5 * 1000 milliseconds, 5 * 60 * 1000 milliseconds, logs, directoryName)
 }
