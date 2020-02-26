@@ -65,8 +65,8 @@ object LogFileAnalysisSystem extends App {
   implicit val timeout: Timeout = Timeout(5 seconds)
   val system = ActorSystem("LogFileAnalysisSystem")
   implicit val executionContext: MessageDispatcher = system.dispatchers.lookup("fixed-thread-pool")
-  val logFiles = system.actorOf(Props[Logs], "controller")
+  val logs = system.actorOf(Props[Logs], "controller")
   val directoryName = "/home/knoldus/IdeaProjects/akka-assignment/src/main/resources/res"
-  logFiles ! directoryName
-  system.scheduler.schedule(0 milliseconds, 1 * 60 * 1000 milliseconds, logFiles, directoryName)
+  logs ! directoryName
+  system.scheduler.schedule(0 milliseconds, 1 * 60 * 1000 milliseconds, logs, directoryName)
 }
