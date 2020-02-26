@@ -2,7 +2,8 @@ package com.knoldus.logfile_analysis_using_scheduler
 
 import java.io.File
 
-import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
+import akka.actor.SupervisorStrategy.Restart
+import akka.actor.{Actor, ActorLogging, ActorSystem, OneForOneStrategy, Props, SupervisorStrategy}
 import akka.dispatch.MessageDispatcher
 import akka.pattern._
 import akka.routing.RoundRobinPool
@@ -16,6 +17,8 @@ import scala.io.Source
 
 object Constants {
   val roundRobinParameter: Int = 5
+  val maxNrOfRetries: Int = 5
+  val withinTimeRange: FiniteDuration = 10 seconds
 }
 
 case class LogRecord(file: File, errorCount: Int, warnCount: Int, infoCount: Int)
@@ -63,7 +66,7 @@ class Logs extends Actor with ActorLogging {
       def getListOfLogRecords(fileIndex: Int, listOfLogRecords: List[Future[LogRecord]]): Future[List[LogRecord]] = {
         if (fileIndex < logFiles.length) {
           val logRecord = master ? logFiles(fileIndex)
-          system.scheduler.scheduleOnce(5 * 60 * 1000 milliseconds, displayFile, logFiles(fileIndex))
+          system.scheduler.scheduleOnce(5 * 1000 milliseconds, displayFile, logFiles(fileIndex))
           getListOfLogRecords(fileIndex + 1, listOfLogRecords :+ logRecord.mapTo[LogRecord])
         }
         else {
@@ -72,6 +75,12 @@ class Logs extends Actor with ActorLogging {
       }
 
       getListOfLogRecords(0, List[Future[LogRecord]]()).pipeTo(sender())
+  }
+
+  override val supervisorStrategy: SupervisorStrategy = {
+    OneForOneStrategy(maxNrOfRetries = Constants.maxNrOfRetries, withinTimeRange = Constants.withinTimeRange) {
+      case _: Exception => Restart
+    }
   }
 }
 
