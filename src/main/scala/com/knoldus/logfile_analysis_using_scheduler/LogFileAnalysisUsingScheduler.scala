@@ -2,7 +2,7 @@ package com.knoldus.logfile_analysis_using_scheduler
 
 import java.io.File
 
-import akka.actor.SupervisorStrategy.Restart
+import akka.actor.SupervisorStrategy.{Escalate, Restart, Resume, Stop}
 import akka.actor.{Actor, ActorLogging, ActorSystem, OneForOneStrategy, Props, SupervisorStrategy}
 import akka.dispatch.MessageDispatcher
 import akka.pattern._
@@ -17,8 +17,8 @@ import scala.io.Source
 
 object Constants {
   val roundRobinParameter: Int = 5
-  val maxNrOfRetries: Int = 5
-  val withinTimeRange: FiniteDuration = 10 seconds
+  val maxNrOfRetries: Int = 10
+  val withinTimeRange: FiniteDuration = 1 minute
 }
 
 case class LogRecord(file: File, errorCount: Int, warnCount: Int, infoCount: Int)
@@ -79,7 +79,10 @@ class Logs extends Actor with ActorLogging {
 
   override val supervisorStrategy: SupervisorStrategy = {
     OneForOneStrategy(maxNrOfRetries = Constants.maxNrOfRetries, withinTimeRange = Constants.withinTimeRange) {
-      case _: Exception => Restart
+      case _: ArithmeticException      => Resume
+      case _: NullPointerException     => Restart
+      case _: IllegalArgumentException => Stop
+      case _: Exception                => Escalate
     }
   }
 }
