@@ -2,8 +2,8 @@ package com.knoldus.logfile_analysis_using_scheduler
 
 import java.io.File
 
-import akka.actor.SupervisorStrategy.{Escalate, Restart, Resume, Stop}
-import akka.actor.{Actor, ActorLogging, ActorSystem, OneForOneStrategy, Props, SupervisorStrategy}
+import akka.actor.SupervisorStrategy.{Escalate, Stop}
+import akka.actor.{Actor, ActorKilledException, ActorLogging, ActorSystem, AllForOneStrategy, DeathPactException, Props, SupervisorStrategy}
 import akka.dispatch.MessageDispatcher
 import akka.pattern._
 import akka.routing.RoundRobinPool
@@ -59,7 +59,7 @@ class Logs extends Actor with ActorLogging {
     case directoryName: String =>
       val dir = new File(directoryName)
       val logFiles = dir.listFiles.toList
-      val master = context.actorOf(RoundRobinPool(Constants.roundRobinParameter).props(Props[LogFileAnalysis]).withDispatcher("fixed-thread-pool"), "master")
+      val master = context.actorOf(RoundRobinPool(Constants.roundRobinParameter, supervisorStrategy = mySupervisorStrategy).props(Props[LogFileAnalysis]).withDispatcher("fixed-thread-pool"), "master")
       val displayFile = context.actorOf(Props[DisplayFile])
 
       @scala.annotation.tailrec
@@ -77,12 +77,11 @@ class Logs extends Actor with ActorLogging {
       getListOfLogRecords(0, List[Future[LogRecord]]()).pipeTo(sender())
   }
 
-  override val supervisorStrategy: SupervisorStrategy = {
-    OneForOneStrategy(maxNrOfRetries = Constants.maxNrOfRetries, withinTimeRange = Constants.withinTimeRange) {
-      case _: ArithmeticException      => Resume
-      case _: NullPointerException     => Restart
-      case _: IllegalArgumentException => Stop
-      case _: Exception                => Escalate
+  val mySupervisorStrategy: SupervisorStrategy = {
+    AllForOneStrategy(maxNrOfRetries = Constants.maxNrOfRetries, withinTimeRange = Constants.withinTimeRange) {
+      case _: ActorKilledException => Stop
+      case _: DeathPactException => Stop
+      case _: Exception => Escalate
     }
   }
 }
