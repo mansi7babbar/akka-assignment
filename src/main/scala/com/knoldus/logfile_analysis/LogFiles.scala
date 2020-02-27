@@ -4,6 +4,7 @@ import java.io.File
 
 import scala.io.Source
 
+
 case class LogRecord(file: File, errorCount: Int, warnCount: Int, infoCount: Int)
 
 case class LogRecordSum(errorSum: Int, warnSum: Int, infoSum: Int)
@@ -41,8 +42,16 @@ class LogFileAnalysis extends LogFiles {
 
 class LogFiles {
   val directoryName = "/home/knoldus/IdeaProjects/akka-assignment/src/main/resources/res"
+
   def getListOfLogFiles: List[File] = {
     val listOfLogFiles = new File(directoryName).listFiles.toList
     listOfLogFiles
   }
+}
+
+object LogFiles extends App {
+  val logFileAnalysis = new LogFileAnalysis
+  val logRecord = logFileAnalysis.getLogRecord
+  val logFileAnalysisForAvg = new LogFileAnalysisForAvg
+  val logRecordAvg = logFileAnalysisForAvg.getLogRecordAvg
 }

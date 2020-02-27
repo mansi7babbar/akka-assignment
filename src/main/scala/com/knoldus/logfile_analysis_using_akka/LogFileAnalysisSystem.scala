@@ -89,5 +89,5 @@ object LogFileAnalysisSystem extends App {
   implicit val executionContext: MessageDispatcher = system.dispatchers.lookup("fixed-thread-pool")
   val logs = system.actorOf(Props[Logs], "controller")
   val directoryName = "/home/knoldus/IdeaProjects/akka-assignment/src/main/resources/res"
-  system.scheduler.schedule(5 * 1000 milliseconds, 5 * 60 * 1000 milliseconds, logs, directoryName)
+  system.scheduler.scheduleWithFixedDelay(5 * 1000 milliseconds, 5 * 60 * 1000 milliseconds, logs, directoryName)
 }
