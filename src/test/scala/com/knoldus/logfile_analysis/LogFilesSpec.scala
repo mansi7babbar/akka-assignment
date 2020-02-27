@@ -29,7 +29,7 @@ class LogFilesSpec extends FlatSpec with BeforeAndAfterAll {
 
   "getLogRecordAvg method" should "return object of case class LogRecordAvg" in {
     val actualResult = logFilesAnalysisForAvg.getLogRecordAvg
-    val expectedResult = LogRecordAvg(44,1357,262)
+    val expectedResult = LogRecordAvg(44, 1357, 262)
     assert(expectedResult == actualResult)
   }
 }

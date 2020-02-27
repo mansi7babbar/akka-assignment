@@ -34,9 +34,7 @@ class LogFileAnalysisForAvg extends Actor {
   override def receive: Receive = {
     case listOfLogRecord: List[LogRecord] =>
       val logRecordSum = listOfLogRecord.foldLeft(LogRecordSum(0, 0, 0)) { (avg, log) =>
-        log match {
-          case log: LogRecord => LogRecordSum(avg.errorSum + log.errorCount, avg.warnSum + log.warnCount, avg.infoSum + log.infoCount)
-        }
+        LogRecordSum(avg.errorSum + log.errorCount, avg.warnSum + log.warnCount, avg.infoSum + log.infoCount)
       }
 
       val logRecordAvg = LogRecordAvg(logRecordSum.errorSum / listOfLogRecord.length, logRecordSum.warnSum / listOfLogRecord.length, logRecordSum.infoSum / listOfLogRecord.length)
@@ -93,6 +91,8 @@ class Logs extends Actor with ActorLogging {
         log.info(s"File = ${logRecord.file}, Total errors = ${logRecord.errorCount}, Total warnings = ${logRecord.warnCount}, Total info = ${logRecord.infoCount}")))
       logRecordAvg.map(logRecordAvg =>
         log.info(s"Avg errors per file = ${logRecordAvg.errorAvg}, Avg warnings per file = ${logRecordAvg.warnAvg}, Avg info per file = ${logRecordAvg.infoAvg}"))
+
+      listOfLogRecord.map(listOfLogRecord => listOfLogRecord).pipeTo(sender())
   }
 }
 
