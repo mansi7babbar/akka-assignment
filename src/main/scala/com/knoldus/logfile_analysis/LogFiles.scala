@@ -4,12 +4,15 @@ import java.io.File
 
 import scala.io.Source
 
-
 case class LogRecord(file: File, errorCount: Int, warnCount: Int, infoCount: Int)
 
 case class LogRecordSum(errorSum: Int, warnSum: Int, infoSum: Int)
 
 case class LogRecordAvg(errorAvg: Int, warnAvg: Int, infoAvg: Int)
+
+/**
+ * Created to return object of case class LogRecordAvg which contains average of errors per file, average of warnings per file, average of info per file
+ */
 
 class LogFileAnalysisForAvg extends LogFileAnalysis {
   def getLogRecordAvg: LogRecordAvg = {
@@ -25,6 +28,10 @@ class LogFileAnalysisForAvg extends LogFileAnalysis {
   }
 }
 
+/**
+ * Created to return list of objects of case class LogRecord which contains count of errors per file, count of warnings per file, count of info per file
+ */
+
 class LogFileAnalysis extends LogFiles {
   def getLogRecord: List[LogRecord] = {
     val listOfLogFiles = getListOfLogFiles
@@ -39,6 +46,10 @@ class LogFileAnalysis extends LogFiles {
     logRecord
   }
 }
+
+/**
+ * Created to return list of log files in directory provided
+ */
 
 class LogFiles {
   val directoryName = "/home/knoldus/IdeaProjects/akka-assignment/src/main/resources/res"

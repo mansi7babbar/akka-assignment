@@ -27,7 +27,7 @@ case class LogRecordSum(errorSum: Int, warnSum: Int, infoSum: Int)
 case class LogRecordAvg(errorAvg: Int, warnAvg: Int, infoAvg: Int)
 
 /**
- * Created to return list of objects of case class LogRecordAvg which contains average of errors per file, average of warnings per file, average of info per file
+ * Created to return object of case class LogRecordAvg which contains average of errors per file, average of warnings per file, average of info per file
  */
 
 class LogFileAnalysisForAvg extends Actor {
@@ -45,8 +45,8 @@ class LogFileAnalysisForAvg extends Actor {
 }
 
 /**
-* Created to return list of objects of case class LogRecord which contains count of errors per file, count of warnings per file, count of info per file
-*/
+ * Created to return list of objects of case class LogRecord which contains count of errors per file, count of warnings per file, count of info per file
+ */
 
 class LogFileAnalysis extends Actor {
   override def receive: Receive = {
