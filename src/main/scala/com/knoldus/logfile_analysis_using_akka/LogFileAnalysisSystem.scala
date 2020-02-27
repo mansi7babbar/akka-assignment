@@ -26,6 +26,10 @@ case class LogRecordSum(errorSum: Int, warnSum: Int, infoSum: Int)
 
 case class LogRecordAvg(errorAvg: Int, warnAvg: Int, infoAvg: Int)
 
+/**
+ * Created to return list of objects of case class LogRecordAvg which contains average of errors per file, average of warnings per file, average of info per file
+ */
+
 class LogFileAnalysisForAvg extends Actor {
   override def receive: Receive = {
     case listOfLogRecord: List[LogRecord] =>
@@ -39,6 +43,10 @@ class LogFileAnalysisForAvg extends Actor {
       Future.successful(logRecordAvg).pipeTo(sender)
   }
 }
+
+/**
+* Created to return list of objects of case class LogRecord which contains count of errors per file, count of warnings per file, count of info per file
+*/
 
 class LogFileAnalysis extends Actor {
   override def receive: Receive = {
@@ -55,6 +63,11 @@ class LogFileAnalysis extends Actor {
       Future.successful(logRecord).pipeTo(sender)
   }
 }
+
+/**
+ * Actor which receives a directory name as message and creates a router to process each file in the directory
+ * Includes user defined dispatcher which also contains mailbox configuration, round robin strategy, user defined supervision strategy
+ */
 
 class Logs extends Actor with ActorLogging {
   implicit val timeout: Timeout = Timeout(5 seconds)
@@ -82,6 +95,11 @@ class Logs extends Actor with ActorLogging {
         log.info(s"Avg errors per file = ${logRecordAvg.errorAvg}, Avg warnings per file = ${logRecordAvg.warnAvg}, Avg info per file = ${logRecordAvg.infoAvg}"))
   }
 }
+
+/**
+ * Created Actor System
+ * Created a scheduler to display all log files after every 5 minutes
+ */
 
 object LogFileAnalysisSystem extends App {
   implicit val timeout: Timeout = Timeout(5 seconds)
