@@ -52,7 +52,7 @@ class LogFileAnalysis extends LogFiles {
  */
 
 class LogFiles {
-  val directoryName = "/home/knoldus/IdeaProjects/akka-assignment/src/main/resources/res"
+  val directoryName = "./src/main/resources/res"
 
   def getListOfLogFiles: List[File] = {
     val listOfLogFiles = new File(directoryName).listFiles.toList
